@@ -54,6 +54,33 @@ int time_hours[13][6] = {
   { -1,  61,  62,  63,  -1,  -1}, // ein uhr
 };
 
+int mapLed(int x, int y){
+  int ret = 0;
+  if(y%2==0){//even
+    ret = x + 11*y;
+  }else{
+    ret = abs(x-10) + 11*y;
+  }
+  return ret;
+}
+
+void testLed(){
+  while(true){
+    for(int i=0; i<11; i++) {
+      for(int j=0; j<11; j++){
+        strip.setPixelColor(mapLed(i,j), strip.Color(0, 0, 0, 255));
+        strip.show();
+        delay(10);
+      }
+    }
+    delay(1000);
+    for(int i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, strip.Color(0, 0, 0, 0));
+      strip.show();
+    }
+  }
+}
+
 void setStime(uint hour, uint min)
 {
   if(min >=30){
@@ -65,21 +92,21 @@ void setStime(uint hour, uint min)
   strip.fill(strip.Color(0, 0, 0, 0)); 
 
   for(int j=0; j<5;j++){
-    strip.setPixelColor(time_it_is[j], strip.Color(255, 0, 0, 255));
+    strip.setPixelColor(time_it_is[j], strip.Color(0, 0, 0, 255));
   }
 
   uint minTemp = min / 5;
   for(int j=0; j<12;j++){
-    strip.setPixelColor(time_minutes[minTemp][j], strip.Color(255, 0, 0, 255));
+    strip.setPixelColor(time_minutes[minTemp][j], strip.Color(0, 0, 0, 255));
   }
 
   if(hour == 1 && minTemp == 0){
     for(int j=0; j<6;j++){
-      strip.setPixelColor(time_hours[12][j], strip.Color(255, 0, 0, 255));
+      strip.setPixelColor(time_hours[12][j], strip.Color(0, 0, 0, 255));
     }    
   }else{
     for(int j=0; j<6;j++){
-      strip.setPixelColor(time_hours[hour][j], strip.Color(255, 0, 0, 255));
+      strip.setPixelColor(time_hours[hour][j], strip.Color(0, 0, 0, 255));
     }
   }  
   strip.show();
@@ -222,11 +249,13 @@ void setup() {
   strip.show();            // Turn OFF all pixels ASAP
   strip.setBrightness(BRIGHTNESS);
 
+  testLed();
+
   configTime(gmtOffset_sec, daylightOffset_sec, NTP_SERVER);
   scanNetworks();
   setup_wifi();
 
-  initTime("CET-1CEST,M3.5.0,M10.5.0/3");
+  initTime("CET-1CEST,M3.5.0/02,M10.5.0/3");
 
 }
 
