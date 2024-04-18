@@ -54,6 +54,92 @@ int time_hours[13][6] = {
   { -1,  61,  62,  63,  -1,  -1}, // ein uhr
 };
 
+typedef int digit_t[5][3];
+
+digit_t digit0 = {
+  {  1,  1,  1},
+  {  1,  0,  1},
+  {  1,  0,  1},
+  {  1,  0,  1},
+  {  1,  1,  1} 
+};
+
+digit_t digit1 = {
+  {  0,  1,  0},
+  {  0,  1,  0},
+  {  0,  1,  0},
+  {  0,  1,  0},
+  {  0,  1,  0} 
+};
+
+digit_t digit2 = {
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  1,  1,  1},
+  {  1,  0,  0},
+  {  1,  1,  1} 
+};
+
+digit_t digit3= {
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  1,  1,  1} 
+};
+
+digit_t digit4 = {
+  {  1,  0,  1},
+  {  1,  0,  1},
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  0,  0,  1} 
+};
+
+digit_t digit5 = {
+  {  1,  1,  1},
+  {  1,  0,  0},
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  1,  1,  1} 
+};
+
+digit_t digit6 = {
+  {  1,  1,  1},
+  {  1,  0,  0},
+  {  1,  1,  1},
+  {  1,  0,  1},
+  {  1,  1,  1} 
+};
+
+digit_t digit7 = {
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  0,  0,  1},
+  {  0,  0,  1},
+  {  0,  0,  1} 
+};
+
+digit_t digit8 = {
+  {  1,  1,  1},
+  {  1,  0,  1},
+  {  1,  1,  1},
+  {  1,  0,  1},
+  {  1,  1,  1} 
+};
+
+digit_t digit9 = {
+  {  1,  1,  1},
+  {  1,  0,  1},
+  {  1,  1,  1},
+  {  0,  0,  1},
+  {  1,  1,  1} 
+};
+
+
+// create an array digits which contains pointers to the arrays digit0 and digit1
+
+
 int mapLed(int x, int y){
   int ret = 0;
   if(y%2==0){//even
@@ -64,15 +150,122 @@ int mapLed(int x, int y){
   return ret;
 }
 
+int showDigit(int digit, int x, int y){
+  switch (digit){
+    case 0:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit0[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 1:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit1[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 2:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit2[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 3:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit3[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 4:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit4[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 5:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit5[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 6:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit6[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 7:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit7[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 8:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit8[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+    case 9:
+      for(int i=0; i<5; i++){
+        for(int j=0; j<3; j++){
+          if(digit9[i][j] == 1){
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+          }
+        }
+      }
+      break;
+  }
+  
+  return 1;
+}
+
+int i = 0;
+
 void testLed(){
   while(true){
-    for(int i=0; i<11; i++) {
+    i++;
+    if(i>9) i=0;
+    /*for(int i=0; i<11; i++) {
       for(int j=0; j<11; j++){
         strip.setPixelColor(mapLed(i,j), strip.Color(0, 0, 0, 255));
         strip.show();
         delay(10);
       }
-    }
+    }*/
+    showDigit(i, 2, 0);
+    showDigit(i, 6, 0);
+
+    showDigit(i, 2, 6);
+    showDigit(i, 6, 6);
+    strip.show();
     delay(1000);
     for(int i=0; i<strip.numPixels(); i++) {
       strip.setPixelColor(i, strip.Color(0, 0, 0, 0));
@@ -109,6 +302,26 @@ void setStime(uint hour, uint min)
       strip.setPixelColor(time_hours[hour][j], strip.Color(0, 0, 0, 255));
     }
   }  
+  strip.show();
+}
+
+void setStimeDigital(uint hour, uint min)
+{
+  for(int i=0; i<strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0, 0));
+  }
+  int minDigit1 = min / 10;
+  int minDigit2 = min % 10;
+
+  int hourDigit1 = hour / 10;
+  int hourDigit2 = hour % 10;
+
+  showDigit(hourDigit1, 2, 0);
+  showDigit(hourDigit2, 6, 0);
+
+  showDigit(minDigit1, 2, 6);
+  showDigit(minDigit2, 6, 6);
+ 
   strip.show();
 }
 
@@ -249,7 +462,7 @@ void setup() {
   strip.show();            // Turn OFF all pixels ASAP
   strip.setBrightness(BRIGHTNESS);
 
-  testLed();
+  //testLed();
 
   configTime(gmtOffset_sec, daylightOffset_sec, NTP_SERVER);
   scanNetworks();
@@ -278,7 +491,8 @@ void loop()
     }
     Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
     nextUpdate = millis() + (60-timeinfo.tm_sec)*1000;
-    setStime(timeinfo.tm_hour, timeinfo.tm_min);
+    //setStime(timeinfo.tm_hour, timeinfo.tm_min);
+    setStimeDigital(timeinfo.tm_hour, timeinfo.tm_min);
     //xSemaphoreGive(semDisplay);
   }
 
