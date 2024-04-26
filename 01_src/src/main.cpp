@@ -2,9 +2,15 @@
 #include <WiFi.h>
 #include <time.h>
 #include <Adafruit_NeoPixel.h>
+#include <Wire.h>
+#include <Tsl2561Util.h>
 
 #include "board.h"
 #include "myWifi.h"
+
+#include "time_led.h"
+#include "digits.h"
+#include "icons.h"
 
 bool ledState = LED_OFF;
 const long  gmtOffset_sec = 3600;
@@ -20,121 +26,9 @@ const int   daylightOffset_sec = 0;
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRBW + NEO_KHZ800);
+Tsl2561 Tsl(Wire);
 
-int time_it_is[5] = {0, 1, 3, 4, 5}; // es ist
-
-int time_minutes[12][12] = {
-  { 99, 100, 101,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1}, // uhr
-  {  7,   8,   9,  10,  38,  39,  40,  41,  -1,  -1,  -1,  -1}, // fünf nach
-  { 18,  19,  20,  21,  38,  39,  40,  41,  -1,  -1,  -1,  -1}, // zehn nach
-  { 26,  27,  28,  29,  30,  31,  32,  38,  39,  40,  41,  -1}, // viertel nach
-  { 11,  12,  13,  14,  15,  16,  17,  38,  39,  40,  41,  -1}, // zwanzig nach
-  {  7,   8,   9,  10,  35,  36,  37,  44,  45,  46,  47,  -1}, // fünf vor halb
-  { 44,  45,  46,  47,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1}, // halb 
-  {  7,   8,   9,  10,  38,  39,  40,  41,  44,  45,  46,  47}, // fünf nach halb
-  { 11,  12,  13,  14,  15,  16,  17,  35,  36,  37,  -1,  -1}, // zwanzig vor
-  { 26,  27,  28,  29,  30,  31,  32,  35,  36,  37,  -1,  -1}, // viertel vor
-  { 18,  19,  20,  21,  35,  36,  37,  -1,  -1,  -1,  -1,  -1}, // zehn vor
-  {  7,   8,   9,  10,  35,  36,  37,  -1,  -1,  -1,  -1,  -1}  // fünf vor
-};
-
-int time_hours[13][6] = {
-  { 49,  50,  51,  52,  53,  -1}, // zwölf 
-  { 60,  61,  62,  63,  -1,  -1}, // eins
-  { 62,  63,  64,  65,  -1,  -1}, // zwei
-  { 67,  68,  69,  70,  -1,  -1}, // drei
-  { 77,  78,  79,  80,  -1,  -1}, // vier
-  { 73,  74,  75,  76,  -1,  -1}, // fünf 
-  {104, 105, 106, 107, 108,  -1}, // sechs
-  { 55,  56,  57,  58,  59,  60}, // sieben 
-  { 89,  90,  91,  92,  -1,  -1}, // acht
-  { 81,  82,  83,  84,  -1,  -1}, // neun 
-  { 93,  94,  95,  96,  -1,  -1}, // zehn
-  { 85,  86,  87,  -1,  -1,  -1}, // elf
-  { -1,  61,  62,  63,  -1,  -1}, // ein uhr
-};
-
-typedef int digit_t[5][3];
-
-digit_t digit0 = {
-  {  1,  1,  1},
-  {  1,  0,  1},
-  {  1,  0,  1},
-  {  1,  0,  1},
-  {  1,  1,  1} 
-};
-
-digit_t digit1 = {
-  {  0,  1,  0},
-  {  0,  1,  0},
-  {  0,  1,  0},
-  {  0,  1,  0},
-  {  0,  1,  0} 
-};
-
-digit_t digit2 = {
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  1,  1,  1},
-  {  1,  0,  0},
-  {  1,  1,  1} 
-};
-
-digit_t digit3= {
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  1,  1,  1} 
-};
-
-digit_t digit4 = {
-  {  1,  0,  1},
-  {  1,  0,  1},
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  0,  0,  1} 
-};
-
-digit_t digit5 = {
-  {  1,  1,  1},
-  {  1,  0,  0},
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  1,  1,  1} 
-};
-
-digit_t digit6 = {
-  {  1,  1,  1},
-  {  1,  0,  0},
-  {  1,  1,  1},
-  {  1,  0,  1},
-  {  1,  1,  1} 
-};
-
-digit_t digit7 = {
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  0,  0,  1},
-  {  0,  0,  1},
-  {  0,  0,  1} 
-};
-
-digit_t digit8 = {
-  {  1,  1,  1},
-  {  1,  0,  1},
-  {  1,  1,  1},
-  {  1,  0,  1},
-  {  1,  1,  1} 
-};
-
-digit_t digit9 = {
-  {  1,  1,  1},
-  {  1,  0,  1},
-  {  1,  1,  1},
-  {  0,  0,  1},
-  {  1,  1,  1} 
-};
+//https://www.pixilart.com/draw/96x64-bitmap-7012c32cc9
 
 
 // create an array digits which contains pointers to the arrays digit0 and digit1
@@ -249,17 +143,43 @@ int showDigit(int digit, int x, int y){
 
 int i = 0;
 
+void showHeart(uint32_t c){
+  for(int i=0; i<11; i++) {
+    for(int j=0; j<11; j++){
+      if(heart[j][i] == 1){
+        strip.setPixelColor(mapLed(i,j), c);
+      }else{
+        strip.setPixelColor(mapLed(i,j), strip.Color(0, 0, 0, 0));
+      }
+
+    }
+  }
+  strip.show();
+}
+
 void testLed(){
+    strip.show();
   while(true){
-    i++;
+    for(int j=0; j<256; j++) { // Ramp up from 0 to 255
+    // Fill entire strip with white at gamma-corrected brightness level 'j':
+    showHeart(strip.Color(0, strip.gamma8(j), 0, 0));
+    delay(3);
+  }
+
+  for(int j=255; j>=0; j--) { // Ramp down from 255 to 0
+    showHeart(strip.Color(0, strip.gamma8(j), 0, 0));
+    delay(3);
+  }
+    
+    /*i++;
     if(i>9) i=0;
-    /*for(int i=0; i<11; i++) {
+    for(int i=0; i<11; i++) {
       for(int j=0; j<11; j++){
         strip.setPixelColor(mapLed(i,j), strip.Color(0, 0, 0, 255));
         strip.show();
         delay(10);
       }
-    }*/
+    }
     showDigit(i, 2, 0);
     showDigit(i, 6, 0);
 
@@ -270,7 +190,7 @@ void testLed(){
     for(int i=0; i<strip.numPixels(); i++) {
       strip.setPixelColor(i, strip.Color(0, 0, 0, 0));
       strip.show();
-    }
+    }*/
   }
 }
 
@@ -449,10 +369,56 @@ void setup_wifi() {
 
 struct tm timeinfo;
 
+char *format( const char *fmt, ... ) {
+  static char buf[128];
+  va_list arg;
+  va_start(arg, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, arg);
+  buf[sizeof(buf)-1] = '\0';
+  va_end(arg);
+  return buf;
+}
+
+void printTSL(){
+  bool found = false;
+
+  if( Tsl.begin(TSL2561_ADDR) ) {
+    found = true;
+    Serial.println();
+
+    uint16_t scaledFull = 0, scaledIr;
+    uint32_t full, ir, milliLux;
+    uint8_t id;
+    bool gain = 1;
+    Tsl2561::exposure_t exposure = (Tsl2561::exposure_t)2;
+    Tsl.on();
+
+    Tsl.setSensitivity(gain, exposure);
+    Tsl2561Util::waitNext(exposure);
+    Tsl.id(id);
+    Tsl.getSensitivity(gain, exposure);
+    Tsl.fullLuminosity(scaledFull);
+    Tsl.irLuminosity(scaledIr);
+
+    Serial.print(format("Tsl2561 addr: 0x%02x, id: 0x%02x, sfull: %5u, sir: %5u, gain: %d, exp: %d",
+      TSL2561_ADDR, id, scaledFull, scaledIr, gain, exposure));
+
+    if( Tsl2561Util::normalizedLuminosity(gain, exposure, full = scaledFull, ir = scaledIr) ) {
+      if( Tsl2561Util::milliLux(full, ir, milliLux, Tsl2561::packageCS(id)) ) {
+        Serial.print(format(", full: %5lu, ir: %5lu, lux: %5lu.%03lu\n", (unsigned long)full, (unsigned long)ir, (unsigned long)milliLux/1000, (unsigned long)milliLux%1000));
+      }
+    }
+
+    Tsl.off();
+  }
+}
+
 void setup() {
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, LED_OFF);
 
+  Wire.begin(PIN_SDA, PIN_SCL);
+  Serial.begin(115200);
 
 	Serial.println("Starting ....");
 
@@ -469,6 +435,7 @@ void setup() {
   setup_wifi();
 
   initTime("CET-1CEST,M3.5.0/02,M10.5.0/3");
+  printTSL();
 
 }
 
@@ -483,7 +450,9 @@ void loop()
     digitalWrite(PIN_LED, LED_ON);
   }
 
-  if(millis() > nextUpdate){
+  long currentTimestamp = millis();
+
+  if(currentTimestamp > nextUpdate){
     
     if(!getLocalTime(&timeinfo)){
       Serial.println("Failed to obtain time");
@@ -491,9 +460,16 @@ void loop()
     }
     Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
     nextUpdate = millis() + (60-timeinfo.tm_sec)*1000;
-    //setStime(timeinfo.tm_hour, timeinfo.tm_min);
-    setStimeDigital(timeinfo.tm_hour, timeinfo.tm_min);
-    //xSemaphoreGive(semDisplay);
+
+    if(timeinfo.tm_min % 5 == 0){
+      setStime(timeinfo.tm_hour, timeinfo.tm_min);
+    }else{
+      setStimeDigital(timeinfo.tm_hour, timeinfo.tm_min);
+    }
+  }
+
+  if(currentTimestamp > 500){
+    printTSL();
   }
 
 }
