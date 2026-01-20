@@ -16,16 +16,17 @@ bool ledState = LED_OFF;
 const long  gmtOffset_sec = 3600;
 const int   daylightOffset_sec = 0;
 
-#define LED_PIN     4
-
 // How many NeoPixels are attached to the Arduino?
 #define LED_COUNT  121
 
 // NeoPixel brightness, 0 (min) to 255 (max)
 #define BRIGHTNESS 255
+#define LED_COLOR 0, 0, 0, 255 //R G B W
+#define MIN_BRIGHTNESS 5
+#define MAX_BRIGHTNESS 255
 
 // Declare our NeoPixel strip object:
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel strip(LED_COUNT, LED_BUS_PIN, NEO_GRBW + NEO_KHZ800);
 Tsl2561 Tsl(Wire);
 
 //https://www.pixilart.com/draw/96x64-bitmap-7012c32cc9
@@ -50,7 +51,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit0[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -59,7 +60,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit1[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -68,7 +69,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit2[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -77,7 +78,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit3[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -86,7 +87,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit4[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -95,7 +96,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit5[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -104,7 +105,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit6[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -113,7 +114,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit7[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -122,7 +123,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit8[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -131,7 +132,7 @@ int showDigit(int digit, int x, int y){
       for(int i=0; i<5; i++){
         for(int j=0; j<3; j++){
           if(digit9[i][j] == 1){
-            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(0, 0, 0, 255));
+            strip.setPixelColor(mapLed(x+j, y+i), strip.Color(LED_COLOR));
           }
         }
       }
@@ -196,7 +197,7 @@ void testLed(){
 
 void setStime(uint hour, uint min)
 {
-  if(min >=30){
+  if(min >=25){
     hour+=1;
   }
   if(hour >= 12 ){
@@ -205,21 +206,21 @@ void setStime(uint hour, uint min)
   strip.fill(strip.Color(0, 0, 0, 0)); 
 
   for(int j=0; j<5;j++){
-    strip.setPixelColor(time_it_is[j], strip.Color(0, 0, 0, 255));
+    strip.setPixelColor(time_it_is[j], strip.Color(LED_COLOR));
   }
 
   uint minTemp = min / 5;
   for(int j=0; j<12;j++){
-    strip.setPixelColor(time_minutes[minTemp][j], strip.Color(0, 0, 0, 255));
+    strip.setPixelColor(time_minutes[minTemp][j], strip.Color(LED_COLOR));
   }
 
   if(hour == 1 && minTemp == 0){
     for(int j=0; j<6;j++){
-      strip.setPixelColor(time_hours[12][j], strip.Color(0, 0, 0, 255));
+      strip.setPixelColor(time_hours[12][j], strip.Color(LED_COLOR));
     }    
   }else{
     for(int j=0; j<6;j++){
-      strip.setPixelColor(time_hours[hour][j], strip.Color(0, 0, 0, 255));
+      strip.setPixelColor(time_hours[hour][j], strip.Color(LED_COLOR));
     }
   }  
   strip.show();
@@ -379,15 +380,16 @@ char *format( const char *fmt, ... ) {
   return buf;
 }
 
-void printTSL(){
+uint32_t printTSL(){
   bool found = false;
+  uint32_t milliLux = 0;
 
   if( Tsl.begin(TSL2561_ADDR) ) {
     found = true;
     Serial.println();
 
     uint16_t scaledFull = 0, scaledIr;
-    uint32_t full, ir, milliLux;
+    uint32_t full, ir;
     uint8_t id;
     bool gain = 1;
     Tsl2561::exposure_t exposure = (Tsl2561::exposure_t)2;
@@ -411,22 +413,24 @@ void printTSL(){
 
     Tsl.off();
   }
+  return milliLux;
 }
 
 void setup() {
+  Serial.begin(115200);
+	Serial.println("Starting ....");
+
 	pinMode(PIN_LED, OUTPUT);
 	digitalWrite(PIN_LED, LED_OFF);
 
   Wire.begin(PIN_SDA, PIN_SCL);
-  Serial.begin(115200);
-
-	Serial.println("Starting ....");
+  
 
 	Serial.println("Setup done ....");
 
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
   strip.show();            // Turn OFF all pixels ASAP
-  strip.setBrightness(BRIGHTNESS);
+  strip.setBrightness(MAX_BRIGHTNESS);
 
   //testLed();
 
@@ -461,15 +465,26 @@ void loop()
     Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
     nextUpdate = millis() + (60-timeinfo.tm_sec)*1000;
 
-    if(timeinfo.tm_min % 5 == 0){
+    /*if(timeinfo.tm_min % 5 == 0){
       setStime(timeinfo.tm_hour, timeinfo.tm_min);
     }else{
       setStimeDigital(timeinfo.tm_hour, timeinfo.tm_min);
-    }
+    }*/
+    setStime(timeinfo.tm_hour, timeinfo.tm_min);
   }
 
   if(currentTimestamp > 500){
-    printTSL();
+    uint32_t milliLux = printTSL();
+    float lux = milliLux / 1000.0f;
+    Serial.printf("Lux: %.2f\n", lux);
+    if(lux < 10.0f){
+      strip.setBrightness(MIN_BRIGHTNESS);
+    }else if(lux > 300.0f){
+      strip.setBrightness(MAX_BRIGHTNESS);
+    }else{
+      strip.setBrightness(MIN_BRIGHTNESS + (lux - 10.0f) * (MAX_BRIGHTNESS - MIN_BRIGHTNESS) / (300.0f - 10.0f));
+    }
+    strip.show();
   }
 
 }
