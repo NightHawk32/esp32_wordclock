@@ -4,6 +4,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Wire.h>
 #include <Tsl2561Util.h>
+#include <Adafruit_BME680.h>
 
 #include "board.h"
 #include "myWifi.h"
@@ -28,6 +29,7 @@ const int   daylightOffset_sec = 0;
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(LED_COUNT, LED_BUS_PIN, NEO_GRBW + NEO_KHZ800);
 Tsl2561 Tsl(Wire);
+Adafruit_BME680 bme; // I2C
 
 //https://www.pixilart.com/draw/96x64-bitmap-7012c32cc9
 
@@ -416,6 +418,53 @@ uint32_t printTSL(){
   return milliLux;
 }
 
+void initBME688() {
+  Serial.println("Initializing BME688 sensor...");
+  
+  if (!bme.begin(0x76)) {  // Try alternate address 0x76 (default is 0x77)
+    Serial.println("Could not find a valid BME688 sensor, check wiring!");
+    return;
+  }
+  
+  // Set up oversampling and filter initialization
+  bme.setTemperatureOversampling(BME680_OS_8X);
+  bme.setHumidityOversampling(BME680_OS_2X);
+  bme.setPressureOversampling(BME680_OS_4X);
+  bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
+  bme.setGasHeater(320, 150); // 320°C for 150 ms
+  
+  Serial.println("BME688 sensor initialized successfully!");
+}
+
+void printBME688() {
+  if (!bme.performReading()) {
+    Serial.println("Failed to perform BME688 reading");
+    return;
+  }
+  
+  Serial.println("\n=== BME688 Sensor Data ===");
+  Serial.print("Temperature: ");
+  Serial.print(bme.temperature);
+  Serial.println(" °C");
+  
+  Serial.print("Humidity: ");
+  Serial.print(bme.humidity);
+  Serial.println(" %");
+  
+  Serial.print("Pressure: ");
+  Serial.print(bme.pressure / 100.0);
+  Serial.println(" hPa");
+  
+  Serial.print("Gas Resistance: ");
+  Serial.print(bme.gas_resistance / 1000.0);
+  Serial.println(" KOhms");
+  
+  Serial.print("Altitude: ");
+  Serial.print(bme.readAltitude(1013.25)); // Sea level pressure
+  Serial.println(" m");
+  Serial.println("========================\n");
+}
+
 void setup() {
   Serial.begin(115200);
 	Serial.println("Starting ....");
@@ -440,6 +489,9 @@ void setup() {
 
   initTime("CET-1CEST,M3.5.0/02,M10.5.0/3");
   printTSL();
+  
+  // Initialize BME688 sensor
+  initBME688();
 
 }
 
@@ -485,6 +537,9 @@ void loop()
       strip.setBrightness(MIN_BRIGHTNESS + (lux - 10.0f) * (MAX_BRIGHTNESS - MIN_BRIGHTNESS) / (300.0f - 10.0f));
     }
     strip.show();
+    
+    // Print BME688 sensor data
+    printBME688();
   }
 
 }
