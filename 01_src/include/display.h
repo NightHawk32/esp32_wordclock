@@ -8,8 +8,6 @@
 #define LED_COUNT  121
 #define BRIGHTNESS 255
 #define LED_COLOR 0, 0, 0, 255 //R G B W
-#define MIN_BRIGHTNESS 5
-#define MAX_BRIGHTNESS 255
 
 extern Adafruit_NeoPixel strip;
 
@@ -26,5 +24,7 @@ void setLedColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w);
 void setDisplayMode(uint8_t mode);
 uint8_t getDisplayMode();
 void updateDisplay(uint hour, uint min);
+void forceDisplayRefresh();
+void showConnectingAnimation();
 
 #endif // DISPLAY_H

@@ -2,11 +2,15 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <ArduinoJson.h>
+#include <ElegantOTA.h>
 #include "display.h"
 #include "sensors.h"
 #include "settings.h"
 #include "wifi_manager.h"
 #include "time_utils.h"
+
+// External function from main.cpp
+extern void forceDisplayRefresh();
 
 WebServer server(80);
 
@@ -257,6 +261,44 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
     </div>
     
     <div class="section">
+      <h2>Brightness & Lux Settings</h2>
+      <div class="wifi-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <label style="font-weight: 600; color: #555; display: block; margin-bottom: 10px;">
+              Max Brightness: <span id="maxBrightValue">255</span>
+            </label>
+            <input type="range" id="maxBrightness" min="0" max="255" value="255"
+                   style="width: 100%;" oninput="updateBrightnessValue('max')">
+          </div>
+          <div>
+            <label style="font-weight: 600; color: #555; display: block; margin-bottom: 10px;">
+              Min Brightness: <span id="minBrightValue">10</span>
+            </label>
+            <input type="range" id="minBrightness" min="0" max="255" value="10"
+                   style="width: 100%;" oninput="updateBrightnessValue('min')">
+          </div>
+          <div>
+            <label style="font-weight: 600; color: #555; display: block; margin-bottom: 10px;">
+              Max Lux: <span id="maxLuxValue">300</span>
+            </label>
+            <input type="range" id="maxLux" min="100" max="500" value="300" step="10"
+                   style="width: 100%;" oninput="updateBrightnessValue('maxLux')">
+          </div>
+          <div>
+            <label style="font-weight: 600; color: #555; display: block; margin-bottom: 10px;">
+              Min Lux: <span id="minLuxValue">10</span>
+            </label>
+            <input type="range" id="minLux" min="1" max="100" value="10" step="1"
+                   style="width: 100%;" oninput="updateBrightnessValue('minLux')">
+          </div>
+        </div>
+        <button onclick="saveBrightnessSettings()" style="margin-top: 15px;">Save Brightness Settings</button>
+        <div id="brightnessStatus" class="status-message"></div>
+      </div>
+    </div>
+    
+    <div class="section">
       <h2>Display Mode</h2>
       <div class="mode-toggle">
         <button class="mode-btn active" id="wordMode" onclick="setMode('word')">Word Clock</button>
@@ -325,6 +367,14 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
           <div class="sensor-unit">lux</div>
         </div>
       </div>
+    </div>
+    
+    <div class="section">
+      <h2>Firmware Update</h2>
+      <p style="color: #666; margin-bottom: 15px;">Update your WordClock firmware over WiFi</p>
+      <button onclick="window.location.href='/update'" style="width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 1.1em; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; transition: transform 0.2s;">
+        🔄 Go to Firmware Update Page
+      </button>
     </div>
   </div>
 
@@ -399,6 +449,64 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
       });
     }
 
+    function updateBrightnessValue(type) {
+      if (type === 'max') {
+        const value = document.getElementById('maxBrightness').value;
+        document.getElementById('maxBrightValue').textContent = value;
+      } else if (type === 'min') {
+        const value = document.getElementById('minBrightness').value;
+        document.getElementById('minBrightValue').textContent = value;
+      } else if (type === 'maxLux') {
+        const value = document.getElementById('maxLux').value;
+        document.getElementById('maxLuxValue').textContent = value;
+      } else if (type === 'minLux') {
+        const value = document.getElementById('minLux').value;
+        document.getElementById('minLuxValue').textContent = value;
+      }
+    }
+
+    function saveBrightnessSettings() {
+      const maxBright = document.getElementById('maxBrightness').value;
+      const minBright = document.getElementById('minBrightness').value;
+      const maxLux = document.getElementById('maxLux').value;
+      const minLux = document.getElementById('minLux').value;
+      const statusDiv = document.getElementById('brightnessStatus');
+      
+      fetch('/saveBrightness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `maxBright=${maxBright}&minBright=${minBright}&maxLux=${maxLux}&minLux=${minLux}`
+      })
+      .then(response => response.text())
+      .then(data => {
+        statusDiv.className = 'status-message success';
+        statusDiv.textContent = 'Brightness settings saved successfully!';
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 3000);
+      })
+      .catch(error => {
+        statusDiv.className = 'status-message error';
+        statusDiv.textContent = 'Failed to save brightness settings';
+      });
+    }
+
+    function loadBrightnessSettings() {
+      fetch('/getBrightness')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('maxBrightness').value = data.maxBrightness;
+          document.getElementById('minBrightness').value = data.minBrightness;
+          document.getElementById('maxLux').value = data.maxLux;
+          document.getElementById('minLux').value = data.minLux;
+          document.getElementById('maxBrightValue').textContent = data.maxBrightness;
+          document.getElementById('minBrightValue').textContent = data.minBrightness;
+          document.getElementById('maxLuxValue').textContent = data.maxLux;
+          document.getElementById('minLuxValue').textContent = data.minLux;
+        })
+        .catch(error => console.error('Error loading brightness settings:', error));
+    }
+
     function setMode(mode) {
       currentMode = mode;
       document.getElementById('wordMode').classList.toggle('active', mode === 'word');
@@ -455,6 +563,7 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
     }
 
     checkAPMode();
+    loadBrightnessSettings();
 
     // Update sensor data every 2 seconds
     setInterval(updateSensorData, 2000);
@@ -477,6 +586,10 @@ void handleSetColor() {
     
     setLedColor(r, g, b, w);
     saveDisplaySettings(r, g, b, w, getDisplayMode());
+    
+    // Immediately refresh the display with new color
+    forceDisplayRefresh();
+    
     server.send(200, "text/plain", "Color updated");
   } else {
     server.send(400, "text/plain", "Missing parameters");
@@ -502,6 +615,9 @@ void handleSetMode() {
     
     DisplaySettings settings = loadDisplaySettings();
     saveDisplaySettings(settings.red, settings.green, settings.blue, settings.white, modeVal);
+    
+    // Immediately refresh the display with new mode
+    forceDisplayRefresh();
   } else {
     server.send(400, "text/plain", "Missing mode parameter");
   }
@@ -558,6 +674,35 @@ void handleSaveTimezone() {
   }
 }
 
+void handleSaveBrightness() {
+  if (server.hasArg("maxBright") && server.hasArg("minBright") &&
+      server.hasArg("maxLux") && server.hasArg("minLux")) {
+    uint8_t maxBright = server.arg("maxBright").toInt();
+    uint8_t minBright = server.arg("minBright").toInt();
+    uint16_t maxLux = server.arg("maxLux").toInt();
+    uint16_t minLux = server.arg("minLux").toInt();
+    
+    saveBrightnessSettings(maxBright, minBright, maxLux, minLux);
+    server.send(200, "text/plain", "Brightness settings saved");
+  } else {
+    server.send(400, "text/plain", "Missing parameters");
+  }
+}
+
+void handleGetBrightness() {
+  BrightnessSettings settings = loadBrightnessSettings();
+  
+  JsonDocument doc;
+  doc["maxBrightness"] = settings.maxBrightness;
+  doc["minBrightness"] = settings.minBrightness;
+  doc["maxLux"] = settings.maxLux;
+  doc["minLux"] = settings.minLux;
+  
+  String json;
+  serializeJson(doc, json);
+  server.send(200, "application/json", json);
+}
+
 void initWebServer() {
   // Initialize mDNS
   if (!MDNS.begin("wordclock")) {
@@ -574,6 +719,15 @@ void initWebServer() {
   server.on("/getStatus", handleGetStatus);
   server.on("/saveWiFi", HTTP_POST, handleSaveWiFi);
   server.on("/saveTimezone", HTTP_POST, handleSaveTimezone);
+  server.on("/saveBrightness", HTTP_POST, handleSaveBrightness);
+  server.on("/getBrightness", handleGetBrightness);
+  
+  // Initialize ElegantOTA (only in station mode)
+  if (!isAPMode()) {
+    ElegantOTA.begin(&server);    // Start ElegantOTA
+    Serial.println("ElegantOTA initialized");
+    Serial.println("Access OTA update page at: http://wordclock.local/update");
+  }
   
   server.begin();
   Serial.println("Web server started");
@@ -590,6 +744,7 @@ void initWebServer() {
 
 void handleWebServer() {
   server.handleClient();
+  // ElegantOTA is automatically handled by the server
 }
 
 void updateSensorData(float temp, float hum, float press, float lux) {

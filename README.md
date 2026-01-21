@@ -54,6 +54,37 @@ Once connected, the web interface allows you to:
 - **Timezone Configuration:** Set your local timezone for accurate time display
 - **Sensor Monitoring:** View real-time temperature, humidity, pressure, and brightness data
 - **WiFi Reconfiguration:** Change WiFi settings if needed
+- **Firmware Updates:** Update firmware over WiFi without USB cable (see OTA section below)
+
+## 🔄 Over-The-Air (OTA) Firmware Updates
+
+The WordClock supports wireless firmware updates, eliminating the need for USB cable after initial setup.
+
+### Web-Based OTA Update (Recommended)
+
+1. **Access the update page:**
+   - Open http://wordclock.local
+   - Click the "🔄 Go to Firmware Update Page" button
+   - Or directly visit: http://wordclock.local/update
+
+2. **Upload new firmware:**
+   - Select the firmware file (`.bin`)
+   - Click "Update"
+   - Wait for the progress bar to complete
+   - Device will automatically reboot
+
+### PlatformIO Targets
+
+You can also use PlatformIO to upload firmware over WiFi using the following target: OTA, which uses ArduinoOTA.
+And uploads the firmware to the device over the network.
+For the first upload you need to upload via the USB target to set up the WiFi connection.
+
+### Windows Firewall / Defender Note
+
+If OTA updates fail or timeout:
+- **Windows Defender Firewall** may block OTA connections on port 3232
+- **Solution:** Temporarily disable firewall or add exception for Python/PlatformIO
+- **Alternative:** Use the web-based OTA method which uses standard HTTP port 80
 
 ## 🛠️ Hardware
 

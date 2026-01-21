@@ -1,5 +1,6 @@
 #include "wifi_manager.h"
 #include <WiFi.h>
+#include "display.h"
 
 static bool apMode = false;
 
@@ -71,7 +72,8 @@ bool setup_wifi(const char* ssid, const char* password) {
   
   int counter = 0;
   while (WiFi.status() != WL_CONNECTED && counter < 40) {
-    delay(500);
+    showConnectingAnimation();
+    delay(50);
     Serial.print(".");
     counter++;
   }

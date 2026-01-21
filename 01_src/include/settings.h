@@ -22,6 +22,13 @@ struct TimezoneSettings {
   bool configured;
 };
 
+struct BrightnessSettings {
+  uint8_t maxBrightness;
+  uint8_t minBrightness;
+  uint16_t maxLux;
+  uint16_t minLux;
+};
+
 void initSettings();
 void saveDisplaySettings(uint8_t r, uint8_t g, uint8_t b, uint8_t w, uint8_t mode);
 DisplaySettings loadDisplaySettings();
@@ -30,5 +37,7 @@ WiFiSettings loadWiFiSettings();
 void clearWiFiSettings();
 void saveTimezoneSettings(const char* timezone);
 TimezoneSettings loadTimezoneSettings();
+void saveBrightnessSettings(uint8_t maxBright, uint8_t minBright, uint16_t maxLux, uint16_t minLux);
+BrightnessSettings loadBrightnessSettings();
 
 #endif // SETTINGS_H

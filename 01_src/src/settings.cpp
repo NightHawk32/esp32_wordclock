@@ -66,6 +66,31 @@ WiFiSettings loadWiFiSettings() {
   return settings;
 }
 
+void saveBrightnessSettings(uint8_t maxBright, uint8_t minBright, uint16_t maxLux, uint16_t minLux) {
+  preferences.begin("wordclock", false);
+  preferences.putUChar("max_bright", maxBright);
+  preferences.putUChar("min_bright", minBright);
+  preferences.putUShort("max_lux", maxLux);
+  preferences.putUShort("min_lux", minLux);
+  preferences.end();
+  Serial.printf("Brightness settings saved - MaxBright:%d MinBright:%d MaxLux:%d MinLux:%d\n",
+                maxBright, minBright, maxLux, minLux);
+}
+
+BrightnessSettings loadBrightnessSettings() {
+  BrightnessSettings settings;
+  preferences.begin("wordclock", true);
+  settings.maxBrightness = preferences.getUChar("max_bright", 255);
+  settings.minBrightness = preferences.getUChar("min_bright", 10);
+  settings.maxLux = preferences.getUShort("max_lux", 300);
+  settings.minLux = preferences.getUShort("min_lux", 10);
+  preferences.end();
+  
+  Serial.printf("Loaded brightness settings - MaxBright:%d MinBright:%d MaxLux:%d MinLux:%d\n",
+                settings.maxBrightness, settings.minBrightness, settings.maxLux, settings.minLux);
+  return settings;
+}
+
 void clearWiFiSettings() {
   preferences.begin("wordclock", false);
   preferences.remove("wifi_ssid");

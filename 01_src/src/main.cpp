@@ -10,6 +10,7 @@
 #include "display.h"
 #include "web_server.h"
 #include "settings.h"
+#include "ota_manager.h"
 
 bool ledState = LED_OFF;
 const long gmtOffset_sec = 3600;
@@ -20,8 +21,9 @@ struct tm timeinfo;
 long nextUpdate = 0;
 long nextSensorUpdate = 0;
 
-// Forward declaration
+// Forward declarations
 void updateSensorData(float temp, float hum, float press, float lux);
+void forceDisplayRefresh();
 
 void setup() {
   Serial.begin(115200);
@@ -47,6 +49,17 @@ void setup() {
 
   // Initialize display
   initDisplay();
+  
+  // Test LEDs immediately after init to verify hardware
+  Serial.println("Testing LED strip...");
+  strip.fill(strip.Color(10, 10, 10, 10)); // Fill with white
+  strip.show();
+  delay(1000);
+  /*while(true){
+      strip.fill(strip.Color(10, 10, 10, 100)); // Fill with white
+      strip.show();
+  }*/
+  Serial.println("LED test complete");
 
   // Load WiFi settings and attempt connection
   WiFiSettings wifiSettings = loadWiFiSettings();
@@ -74,12 +87,22 @@ void setup() {
   printTSL();
   initBME688();
   
+  // Initialize OTA (only if WiFi is connected)
+  if (wifiConnected) {
+    initOTA();
+  }
+  
   // Initialize web server
   initWebServer();
 }
 
 void loop()
-{  
+{
+  // Handle OTA updates (only in station mode)
+  if (!isAPMode()) {
+    handleOTA();
+  }
+  
   // Handle web server requests
   handleWebServer();
   
@@ -101,16 +124,23 @@ void loop()
 
   long currentTimestamp = millis();
 
-  // Update time display (only if not in AP mode)
-  if (!isAPMode() && currentTimestamp > nextUpdate){
-    if(!getLocalTime(&timeinfo)){
-      Serial.println("Failed to obtain time");
-      return;
+  // Update time display
+  if (currentTimestamp > nextUpdate){
+    if (!isAPMode()) {
+      // Only update with real time if WiFi is connected
+      if(!getLocalTime(&timeinfo)){
+        Serial.println("Failed to obtain time");
+        return;
+      }
+      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+      nextUpdate = millis() + (60-timeinfo.tm_sec)*1000;
+      updateDisplay(timeinfo.tm_hour, timeinfo.tm_min);
+    } else {
+      // In AP mode, show a default pattern (12:00)
+      Serial.println("AP mode - showing default pattern");
+      updateDisplay(12, 0);
+      nextUpdate = millis() + 60000; // Update every minute
     }
-    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-    nextUpdate = millis() + (60-timeinfo.tm_sec)*1000;
-
-    updateDisplay(timeinfo.tm_hour, timeinfo.tm_min);
   }
 
   // Update brightness and read sensors every 5 seconds
@@ -126,5 +156,22 @@ void loop()
     updateSensorData(getTemperature(), getHumidity(), getPressure(), lux);
     
     nextSensorUpdate = currentTimestamp + 5000; // Update every 5 seconds
+  }
+  
+  // Small delay to prevent WiFi stack starvation and allow OTA to work
+  delay(10);
+}
+
+// Function to force an immediate display refresh (called from web interface)
+void forceDisplayRefresh() {
+  if (!isAPMode()) {
+    if(getLocalTime(&timeinfo)){
+      updateDisplay(timeinfo.tm_hour, timeinfo.tm_min);
+      Serial.println("Display refreshed from web interface");
+    }
+  } else {
+    // In AP mode, show default pattern
+    updateDisplay(12, 0);
+    Serial.println("Display refreshed (AP mode)");
   }
 }

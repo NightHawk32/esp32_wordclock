@@ -5,5 +5,6 @@
 
 void initWebServer();
 void handleWebServer();
+void updateSensorData(float temp, float hum, float press, float lux);
 
 #endif // WEB_SERVER_H

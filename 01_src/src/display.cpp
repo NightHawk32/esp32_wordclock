@@ -3,6 +3,7 @@
 #include "time_led.h"
 #include "digits.h"
 #include "icons.h"
+#include "settings.h"
 
 Adafruit_NeoPixel strip(LED_COUNT, LED_BUS_PIN, NEO_GRBW + NEO_KHZ800);
 
@@ -13,7 +14,9 @@ static uint8_t displayMode = 0; // 0 = word clock, 1 = digital
 void initDisplay() {
   strip.begin();
   strip.show();
-  strip.setBrightness(MAX_BRIGHTNESS);
+  BrightnessSettings brightnessSettings = loadBrightnessSettings();
+  strip.setBrightness(brightnessSettings.maxBrightness);
+  Serial.printf("Display initialized - LED_COUNT: %d, LED_BUS_PIN: %d\n", LED_COUNT, LED_BUS_PIN);
 }
 
 int mapLed(int x, int y){
@@ -84,13 +87,16 @@ void testLed(){
 
 void setStime(uint hour, uint min)
 {
+  Serial.printf("setStime called: %02d:%02d, Color RGBW: %d,%d,%d,%d\n",
+                hour, min, customLedColor[0], customLedColor[1], customLedColor[2], customLedColor[3]);
+  
   if(min >=25){
     hour+=1;
   }
   if(hour >= 12 ){
     hour -= 12;
-  }  
-  strip.fill(strip.Color(0, 0, 0, 0)); 
+  }
+  strip.fill(strip.Color(0, 0, 0, 0));
 
   uint32_t color = strip.Color(customLedColor[0], customLedColor[1], customLedColor[2], customLedColor[3]);
 
@@ -117,6 +123,9 @@ void setStime(uint hour, uint min)
 
 void setStimeDigital(uint hour, uint min)
 {
+  Serial.printf("setStimeDigital called: %02d:%02d, Color RGBW: %d,%d,%d,%d\n",
+                hour, min, customLedColor[0], customLedColor[1], customLedColor[2], customLedColor[3]);
+  
   for(int i=0; i<strip.numPixels(); i++) {
     strip.setPixelColor(i, strip.Color(0, 0, 0, 0));
   }
@@ -136,13 +145,23 @@ void setStimeDigital(uint hour, uint min)
 }
 
 void updateBrightness(float lux) {
-  if(lux < 10.0f){
-    strip.setBrightness(MIN_BRIGHTNESS);
-  }else if(lux > 300.0f){
-    strip.setBrightness(MAX_BRIGHTNESS);
+  BrightnessSettings brightnessSettings = loadBrightnessSettings();
+  
+  uint8_t newBrightness;
+  if(lux < brightnessSettings.minLux){
+    newBrightness = brightnessSettings.minBrightness;
+  }else if(lux > brightnessSettings.maxLux){
+    newBrightness = brightnessSettings.maxBrightness;
   }else{
-    strip.setBrightness(MIN_BRIGHTNESS + (lux - 10.0f) * (MAX_BRIGHTNESS - MIN_BRIGHTNESS) / (300.0f - 10.0f));
+    newBrightness = brightnessSettings.minBrightness +
+                    (lux - brightnessSettings.minLux) *
+                    (brightnessSettings.maxBrightness - brightnessSettings.minBrightness) /
+                    (brightnessSettings.maxLux - brightnessSettings.minLux);
   }
+  strip.setBrightness(newBrightness);
+  Serial.printf("Brightness updated: lux=%.2f, brightness=%d (min=%d, max=%d, minLux=%d, maxLux=%d)\n",
+                lux, newBrightness, brightnessSettings.minBrightness, brightnessSettings.maxBrightness,
+                brightnessSettings.minLux, brightnessSettings.maxLux);
   strip.show();
 }
 
@@ -166,5 +185,30 @@ void updateDisplay(uint hour, uint min) {
     setStime(hour, min);
   } else {
     setStimeDigital(hour, min);
+  }
+}
+
+void showConnectingAnimation() {
+  static uint8_t brightness = 0;
+  static int8_t direction = 1;
+  
+  // Orange color (R=255, G=165, B=0)
+  uint32_t orangeColor = strip.Color(255, 165, 0, 0);
+  
+  // Fill all LEDs with orange at current brightness
+  strip.setBrightness(brightness);
+  strip.fill(orangeColor);
+  strip.show();
+  
+  // Update brightness for pulsing effect
+  brightness += direction * 5;
+  
+  // Reverse direction at limits (0 to 150)
+  if (brightness >= 150) {
+    brightness = 150;
+    direction = -1;
+  } else if (brightness <= 0) {
+    brightness = 0;
+    direction = 1;
   }
 }
