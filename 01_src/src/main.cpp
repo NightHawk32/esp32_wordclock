@@ -52,8 +52,7 @@ void setup() {
   
   // Test LEDs immediately after init to verify hardware
   Serial.println("Testing LED strip...");
-  strip.fill(strip.Color(10, 10, 10, 10)); // Fill with white
-  strip.show();
+  showWifi(strip.Color(0, 0, 0, 255)); // Show WiFi icon in white
   delay(1000);
   /*while(true){
       strip.fill(strip.Color(10, 10, 10, 100)); // Fill with white

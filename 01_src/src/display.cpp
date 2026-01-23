@@ -70,6 +70,19 @@ void showHeart(uint32_t c){
   strip.show();
 }
 
+void showWifi(uint32_t c){
+  for(int i=0; i<11; i++) {
+    for(int j=0; j<11; j++){
+      if(wifi[j][i] == 1){
+        strip.setPixelColor(mapLed(i,j), c);
+      }else{
+        strip.setPixelColor(mapLed(i,j), strip.Color(0, 0, 0, 0));
+      }
+    }
+  }
+  strip.show();
+}
+
 void testLed(){
   strip.show();
   while(true){
@@ -109,15 +122,15 @@ void setStime(uint hour, uint min)
     strip.setPixelColor(time_minutes[minTemp][j], color);
   }
 
-  if(hour == 1 && minTemp == 0){
+  if(hour == 1 && minTemp != 0){
     for(int j=0; j<6;j++){
       strip.setPixelColor(time_hours[12][j], color);
-    }    
+    }
   }else{
     for(int j=0; j<6;j++){
       strip.setPixelColor(time_hours[hour][j], color);
     }
-  }  
+  }
   strip.show();
 }
 

@@ -16,6 +16,7 @@ void initDisplay();
 int mapLed(int x, int y);
 int showDigit(int digit, int x, int y);
 void showHeart(uint32_t c);
+void showWifi(uint32_t c);
 void testLed();
 void setStime(uint hour, uint min);
 void setStimeDigital(uint hour, uint min);
