@@ -12,18 +12,39 @@
 #include "settings.h"
 #include "ota_manager.h"
 
-bool ledState = LED_OFF;
-const long gmtOffset_sec = 3600;
-const int daylightOffset_sec = 0;
-const char* NTP_SERVER = "pool.ntp.org";
-
 struct tm timeinfo;
-long nextUpdate = 0;
-long nextSensorUpdate = 0;
+
+// All schedules use unsigned millis() deltas so they survive the 49-day
+// rollover - a clock is expected to run for months without a reboot.
+static uint32_t nextDisplayUpdate = 0;
+static uint32_t nextSensorUpdate = 0;
+static uint32_t nextStatusLed = 0;
+static bool otaStarted = false;
+static bool timeWasValid = false;
+
+static inline bool due(uint32_t deadline) {
+  return (int32_t)(millis() - deadline) >= 0;
+}
 
 // Forward declarations
 void updateSensorData(float temp, float hum, float press, float lux);
 void forceDisplayRefresh();
+
+// Status LED: solid = online, slow blink = reconnecting, fast blink = setup AP.
+static void updateStatusLed() {
+  if (!due(nextStatusLed)) return;
+
+  if (isWifiConnected()) {
+    digitalWrite(PIN_LED, LED_ON);
+    nextStatusLed = millis() + 500;
+    return;
+  }
+
+  static bool on = false;
+  on = !on;
+  digitalWrite(PIN_LED, on ? LED_ON : LED_OFF);
+  nextStatusLed = millis() + (isAPMode() ? 150 : 600);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -33,144 +54,99 @@ void setup() {
   digitalWrite(PIN_LED, LED_OFF);
 
   Wire.begin(PIN_SDA, PIN_SCL);
-  
+
   // Initialize settings (flash storage)
   initSettings();
-  
+
   // Load and apply saved display settings
   DisplaySettings displaySettings = loadDisplaySettings();
   setLedColor(displaySettings.red, displaySettings.green, displaySettings.blue, displaySettings.white);
   setDisplayMode(displaySettings.mode);
-  Serial.printf("Loaded settings - Mode: %d, RGBW: %d,%d,%d,%d\n", 
-                displaySettings.mode, displaySettings.red, displaySettings.green, 
+  Serial.printf("Loaded settings - Mode: %d, RGBW: %d,%d,%d,%d\n",
+                displaySettings.mode, displaySettings.red, displaySettings.green,
                 displaySettings.blue, displaySettings.white);
-  
-  Serial.println("Setup done ....");
 
   // Initialize display
   initDisplay();
-  
-  // Test LEDs immediately after init to verify hardware
-  Serial.println("Testing LED strip...");
-  showWifi(strip.Color(0, 0, 0, 255)); // Show WiFi icon in white
-  delay(1000);
-  /*while(true){
-      strip.fill(strip.Color(10, 10, 10, 100)); // Fill with white
-      strip.show();
-  }*/
-  Serial.println("LED test complete");
+  showWifi(strip.Color(0, 0, 0, 255));
 
-  // Load WiFi settings and attempt connection
-  WiFiSettings wifiSettings = loadWiFiSettings();
-  bool wifiConnected = false;
-  
-  if (wifiSettings.configured) {
-    Serial.println("Attempting to connect to saved WiFi...");
-    wifiConnected = setup_wifi(wifiSettings.ssid, wifiSettings.password);
-  }
-  
-  if (!wifiConnected) {
-    Serial.println("No WiFi configured or connection failed, starting AP mode");
-    startAPMode();
-  } else {
-    // Only init time if WiFi connected
-    configTime(gmtOffset_sec, daylightOffset_sec, NTP_SERVER);
-    
-    // Load and apply timezone settings
-    TimezoneSettings tzSettings = loadTimezoneSettings();
-    initTime(tzSettings.timezone);
-    Serial.printf("Using timezone: %s\n", tzSettings.timezone);
-  }
-  
-  // Initialize sensors
+  // Kick off the WiFi connection. This returns immediately - wifiLoop() drives
+  // the retries, the AP fallback and the NTP sync from loop(), so boot is not
+  // held up by an unreachable router.
+  wifiInit();
+
+  // Sensors
   printTSL();
   initBME688();
-  
-  // Initialize OTA (only if WiFi is connected)
-  if (wifiConnected) {
-    initOTA();
-  }
-  
-  // Initialize web server
+
+  // The web server (and with it the config portal) comes up right away, in
+  // station mode or AP mode alike.
   initWebServer();
 }
 
 void loop()
 {
-  // Handle OTA updates (only in station mode)
-  if (!isAPMode()) {
+  // Non-blocking WiFi state machine + captive portal DNS.
+  wifiLoop();
+
+  // ArduinoOTA can only be armed once we actually have an IP.
+  if (isWifiConnected()) {
+    if (!otaStarted) {
+      initOTA();
+      otaStarted = true;
+    }
     handleOTA();
   }
-  
-  // Handle web server requests
+
   handleWebServer();
-  
-  // Check WiFi connection (only in station mode)
-  if (!isAPMode()) {
-    if(WiFi.status() != WL_CONNECTED){
-      digitalWrite(PIN_LED, LED_OFF);
-      Serial.println("WiFi disconnected, attempting to reconnect...");
-      WiFiSettings wifiSettings = loadWiFiSettings();
-      if (wifiSettings.configured) {
-        setup_wifi(wifiSettings.ssid, wifiSettings.password);
-      }
-    } else {
-      digitalWrite(PIN_LED, LED_ON);
-    }
-  } else {
-    digitalWrite(PIN_LED, LED_ON);
+  updateStatusLed();
+
+  // Log the first successful sync and force a redraw with the real time.
+  if (!timeWasValid && isTimeValid()) {
+    timeWasValid = true;
+    Serial.println("Time synchronised");
+    nextDisplayUpdate = millis();
   }
 
-  long currentTimestamp = millis();
-
-  // Update time display
-  if (currentTimestamp > nextUpdate){
-    if (!isAPMode()) {
-      // Only update with real time if WiFi is connected
-      if(!getLocalTime(&timeinfo)){
-        Serial.println("Failed to obtain time");
-        return;
-      }
+  // --- Display -------------------------------------------------------------
+  // Driven by the RTC, not by the link state: once the time has been synced the
+  // clock keeps showing it through a WiFi outage instead of falling back to a
+  // placeholder.
+  if (due(nextDisplayUpdate)) {
+    if (isTimeValid() && getLocalTime(&timeinfo, 0)) {
       Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-      nextUpdate = millis() + (60-timeinfo.tm_sec)*1000;
       updateDisplay(timeinfo.tm_hour, timeinfo.tm_min);
+      // Re-align to the top of the next minute.
+      nextDisplayUpdate = millis() + (60 - timeinfo.tm_sec) * 1000UL;
     } else {
-      // In AP mode, show a default pattern (12:00)
-      Serial.println("AP mode - showing default pattern");
+      // No time yet: show 12:00 as a placeholder and check back shortly.
       updateDisplay(12, 0);
-      nextUpdate = millis() + 60000; // Update every minute
+      nextDisplayUpdate = millis() + 5000;
     }
   }
 
-  // Update brightness and read sensors every 5 seconds
-  if(currentTimestamp > nextSensorUpdate){
+  // --- Sensors -------------------------------------------------------------
+  if (due(nextSensorUpdate)) {
     uint32_t milliLux = printTSL();
     float lux = milliLux / 1000.0f;
-    Serial.printf("Lux: %.2f\n", lux);
-    
+
     updateBrightness(lux);
     printBME688();
-    
-    // Update web interface with sensor data
+
     updateSensorData(getTemperature(), getHumidity(), getPressure(), lux);
-    
-    nextSensorUpdate = currentTimestamp + 5000; // Update every 5 seconds
+
+    nextSensorUpdate = millis() + 5000;
   }
-  
-  // Small delay to prevent WiFi stack starvation and allow OTA to work
-  delay(10);
+
+  // Yield to the WiFi/TCP tasks.
+  delay(5);
 }
 
-// Function to force an immediate display refresh (called from web interface)
+// Force an immediate display refresh (called from the web interface).
 void forceDisplayRefresh() {
-  if (!isAPMode()) {
-    if(getLocalTime(&timeinfo)){
-      updateDisplay(timeinfo.tm_hour, timeinfo.tm_min);
-      Serial.println("Display refreshed from web interface");
-    }
+  if (isTimeValid() && getLocalTime(&timeinfo, 0)) {
+    updateDisplay(timeinfo.tm_hour, timeinfo.tm_min);
   } else {
-    // In AP mode, show default pattern
     updateDisplay(12, 0);
-    Serial.println("Display refreshed (AP mode)");
   }
 }

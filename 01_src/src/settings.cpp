@@ -4,7 +4,11 @@
 Preferences preferences;
 
 void initSettings() {
+  // Open and close again: every accessor below does its own begin()/end() pair,
+  // and leaving the namespace open here made the first of those begin() calls
+  // fail (Preferences refuses to re-open an already-started handle).
   preferences.begin("wordclock", false);
+  preferences.end();
   Serial.println("Settings initialized");
 }
 

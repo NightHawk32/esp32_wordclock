@@ -33,14 +33,16 @@ void setTime(int yr, int month, int mday, int hr, int minute, int sec, int isDst
 }
 
 void initTime(String timezone){
-  struct tm timeinfo;
-
-  Serial.println("Setting up time");
-  configTime(0, 0, "pool.ntp.org");
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("  Failed to obtain time");
-    return;
-  }
-  Serial.println("  Got the time from NTP");
+  // configTzTime returns immediately - SNTP keeps running in the background and
+  // re-syncs on its own, so we must not block the loop waiting for the first
+  // packet here. Several servers give us a fallback if one is unreachable.
+  Serial.println("Starting SNTP");
+  configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov", "time.cloudflare.com");
   setTimezone(timezone);
+}
+
+bool isTimeValid(){
+  time_t now = time(nullptr);
+  // Anything before 2021 means the RTC is still at its power-on epoch.
+  return now > 1609459200;
 }

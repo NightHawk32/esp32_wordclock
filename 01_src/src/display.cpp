@@ -11,11 +11,35 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_BUS_PIN, NEO_GRBW + NEO_KHZ800);
 static uint8_t customLedColor[4] = {0, 0, 0, 255};
 static uint8_t displayMode = 0; // 0 = word clock, 1 = digital
 
+// Brightness limits are cached in RAM: they used to be re-read from NVS on
+// every sensor tick, which is a flash read every 5 s for values that only
+// change when the user saves them.
+static BrightnessSettings brightnessCfg;
+// Last brightness computed from ambient light, so an effect that takes the
+// strip over (the connect animation) can hand it back unchanged.
+static uint8_t currentBrightness = 255;
+
+void reloadBrightnessSettings() {
+  brightnessCfg = loadBrightnessSettings();
+}
+
+uint8_t getCurrentBrightness() {
+  return currentBrightness;
+}
+
+// Hand the strip back to the clock after an effect (the connect animation) has
+// been driving the brightness. Deliberately does not show() - the caller
+// redraws, so the leftover animation frame is never displayed at full power.
+void restoreBrightness() {
+  strip.setBrightness(currentBrightness);
+}
+
 void initDisplay() {
   strip.begin();
   strip.show();
-  BrightnessSettings brightnessSettings = loadBrightnessSettings();
-  strip.setBrightness(brightnessSettings.maxBrightness);
+  reloadBrightnessSettings();
+  currentBrightness = brightnessCfg.maxBrightness;
+  strip.setBrightness(currentBrightness);
   Serial.printf("Display initialized - LED_COUNT: %d, LED_BUS_PIN: %d\n", LED_COUNT, LED_BUS_PIN);
 }
 
@@ -158,23 +182,25 @@ void setStimeDigital(uint hour, uint min)
 }
 
 void updateBrightness(float lux) {
-  BrightnessSettings brightnessSettings = loadBrightnessSettings();
-  
   uint8_t newBrightness;
-  if(lux < brightnessSettings.minLux){
-    newBrightness = brightnessSettings.minBrightness;
-  }else if(lux > brightnessSettings.maxLux){
-    newBrightness = brightnessSettings.maxBrightness;
+  if(lux < brightnessCfg.minLux){
+    newBrightness = brightnessCfg.minBrightness;
+  }else if(lux > brightnessCfg.maxLux || brightnessCfg.maxLux <= brightnessCfg.minLux){
+    newBrightness = brightnessCfg.maxBrightness;
   }else{
-    newBrightness = brightnessSettings.minBrightness +
-                    (lux - brightnessSettings.minLux) *
-                    (brightnessSettings.maxBrightness - brightnessSettings.minBrightness) /
-                    (brightnessSettings.maxLux - brightnessSettings.minLux);
+    newBrightness = brightnessCfg.minBrightness +
+                    (lux - brightnessCfg.minLux) *
+                    (brightnessCfg.maxBrightness - brightnessCfg.minBrightness) /
+                    (brightnessCfg.maxLux - brightnessCfg.minLux);
   }
-  strip.setBrightness(newBrightness);
-  Serial.printf("Brightness updated: lux=%.2f, brightness=%d (min=%d, max=%d, minLux=%d, maxLux=%d)\n",
-                lux, newBrightness, brightnessSettings.minBrightness, brightnessSettings.maxBrightness,
-                brightnessSettings.minLux, brightnessSettings.maxLux);
+
+  // Only touch the strip when the value actually moved: setBrightness()
+  // rescales every pixel and show() blocks with interrupts off for ~3.6 ms at
+  // 121 LEDs, which is time the WiFi stack would rather have.
+  if (newBrightness == currentBrightness) return;
+
+  currentBrightness = newBrightness;
+  strip.setBrightness(currentBrightness);
   strip.show();
 }
 
@@ -183,6 +209,17 @@ void setLedColor(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
   customLedColor[1] = g;
   customLedColor[2] = b;
   customLedColor[3] = w;
+}
+
+void getLedColor(uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &w) {
+  r = customLedColor[0];
+  g = customLedColor[1];
+  b = customLedColor[2];
+  w = customLedColor[3];
+}
+
+BrightnessSettings getBrightnessSettings() {
+  return brightnessCfg;
 }
 
 void setDisplayMode(uint8_t mode) {
@@ -202,21 +239,23 @@ void updateDisplay(uint hour, uint min) {
 }
 
 void showConnectingAnimation() {
-  static uint8_t brightness = 0;
+  static int16_t brightness = 0;
   static int8_t direction = 1;
-  
-  // Orange color (R=255, G=165, B=0)
+  static uint32_t nextFrameMs = 0;
+
+  // Self-paced so the caller can poll this from a non-blocking loop without
+  // the animation speed depending on how often it happens to be called.
+  uint32_t now = millis();
+  if ((int32_t)(now - nextFrameMs) < 0) return;
+  nextFrameMs = now + 30;
+
   uint32_t orangeColor = strip.Color(255, 165, 0, 0);
-  
-  // Fill all LEDs with orange at current brightness
-  strip.setBrightness(brightness);
+
+  strip.setBrightness((uint8_t)brightness);
   strip.fill(orangeColor);
   strip.show();
-  
-  // Update brightness for pulsing effect
+
   brightness += direction * 5;
-  
-  // Reverse direction at limits (0 to 150)
   if (brightness >= 150) {
     brightness = 150;
     direction = -1;
