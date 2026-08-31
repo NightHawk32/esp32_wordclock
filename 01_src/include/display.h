@@ -19,6 +19,8 @@ int showDigit(int digit, int x, int y);
 void showHeart(uint32_t c);
 void showWifi(uint32_t c);
 void testLed();
+// Boot diagnostic: lights every pixel at ~20 % so a dead LED is obvious.
+void ledSelfTest(uint32_t durationMs);
 void setStime(uint hour, uint min);
 void setStimeDigital(uint hour, uint min);
 void updateBrightness(float lux);

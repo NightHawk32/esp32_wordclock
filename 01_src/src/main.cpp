@@ -68,6 +68,10 @@ void setup() {
 
   // Initialize display
   initDisplay();
+
+  // Light every pixel so a dead LED can be spotted, then show the WiFi icon
+  // while the connection comes up.
+  ledSelfTest(5000);
   showWifi(strip.Color(0, 0, 0, 255));
 
   // Kick off the WiFi connection. This returns immediately - wifiLoop() drives

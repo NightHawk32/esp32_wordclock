@@ -122,6 +122,18 @@ void testLed(){
   }
 }
 
+void ledSelfTest(uint32_t durationMs){
+  Serial.printf("LED self test: all %d pixels on for %lu ms\n", LED_COUNT, (unsigned long)durationMs);
+
+  strip.setBrightness(51); // ~20 % of 255
+  strip.fill(strip.Color(0, 0, 0, 255));
+  strip.show();
+  delay(durationMs);
+
+  // Hand the strip back to the clock; the next redraw paints over this frame.
+  restoreBrightness();
+}
+
 void setStime(uint hour, uint min)
 {
   Serial.printf("setStime called: %02d:%02d, Color RGBW: %d,%d,%d,%d\n",
