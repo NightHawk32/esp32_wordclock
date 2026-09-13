@@ -142,9 +142,7 @@ void setStime(uint hour, uint min)
   if(min >=25){
     hour+=1;
   }
-  if(hour >= 12 ){
-    hour -= 12;
-  }
+  hour %= 12;
   strip.fill(strip.Color(0, 0, 0, 0));
 
   uint32_t color = strip.Color(customLedColor[0], customLedColor[1], customLedColor[2], customLedColor[3]);
@@ -158,7 +156,7 @@ void setStime(uint hour, uint min)
     strip.setPixelColor(time_minutes[minTemp][j], color);
   }
 
-  if(hour == 1 && minTemp != 0){
+  if(hour == 1 && minTemp == 0){
     for(int j=0; j<6;j++){
       strip.setPixelColor(time_hours[12][j], color);
     }
